@@ -50,50 +50,86 @@ class Pipeline:
                         return True  # ← اگر فورواردینگ غیرفعاله، استال نیاز داریم
         return False
 
-
     def tick(self):
-        self.clock += 1
+            # شروع یک کلاک جدید
+            self.clock += 1
+            print('clock: ',self.clock)
+            print('instructions: ',self.instructions)
+            print(self.pipeline_registers)
 
-        # مرحله WB: دستوراتی که وارد WB بودن کامل می‌شن
-        wb_instr = self.pipeline_registers["WB"]
-        self.pipeline_registers["WB"] = []
-        for instr in wb_instr:
-            instr.finished = True
-            self.completed_instructions.append(instr)
+            # WB مرحله: نهایی کردن
+            wb_instr = self.pipeline_registers["WB"]
+            self.pipeline_registers["WB"] = []
+            for instr in wb_instr:
+                instr.finished = True
+                self.completed_instructions.append(instr)
 
-        # MEM ← WB
-        self.pipeline_registers["WB"] = self.pipeline_registers["MEM"]
+            # MEM ← WB
+            self.pipeline_registers["WB"] = self.pipeline_registers["MEM"]
+            # # EX ← MEM
+            self.pipeline_registers["MEM"] = self.pipeline_registers["EX"]
 
-        # EX ← MEM
-        self.pipeline_registers["MEM"] = self.pipeline_registers["EX"]
+            # بررسی برای EX ← ID
+            if self.pipeline_registers["ID"]:
+                curr_instr = self.pipeline_registers["ID"][0]
 
-        # بررسی RAW hazard برای ID → EX
-        if self.pipeline_registers["ID"]:
-            curr_instr = self.pipeline_registers["ID"][0]
-            if self.has_raw_hazard(curr_instr):
-                self.pipeline_registers["EX"] = []  # Stall
-                self.stall_count += 1               # ← شمارش استال
-                self.log_pipeline_stage(curr_instr, "ID")
+                # بررسی دستور BEQ برای Flush
+                if curr_instr.instr_type == "BEQ":
+                    branch_taken = False  # در اینجا فرض می‌کنیم انشعاب انجام نمی‌شه
+
+                    if not branch_taken:
+                        # دستور BEQ و دستورهای بعدی در IF/ID حذف می‌شن
+                        for stage in ["IF", "ID"]:
+                            for flushed_instr in self.pipeline_registers[stage]:
+                                flushed_instr.is_flushed = True
+                        self.pipeline_registers["IF"] = []
+                        self.pipeline_registers["ID"] = []
+                        self.pipeline_registers["EX"] = []
+                    else:
+                        self.pipeline_registers["EX"] = self.pipeline_registers["ID"]
+                        self.pipeline_registers["ID"] = []
+
+                elif self.has_raw_hazard(curr_instr):
+                    self.pipeline_registers["EX"] = []  # استال
+                    self.stall_count += 1
+                    self.log_pipeline_stage(curr_instr, "ID")
+                else:
+                    self.pipeline_registers["EX"] = self.pipeline_registers["ID"]
+                    self.pipeline_registers["ID"] = []
+
             else:
-                self.pipeline_registers["EX"] = self.pipeline_registers["ID"]
-                self.pipeline_registers["ID"] = []
-        else:
-            self.pipeline_registers["EX"] = []
+                self.pipeline_registers["EX"] = []
 
-        # ID ← IF (فقط اگر ID خالی باشه)
-        if not self.pipeline_registers["ID"]:
-            self.pipeline_registers["ID"] = self.pipeline_registers["IF"]
-            self.pipeline_registers["IF"] = []
+            can_fetch_new = not self.pipeline_registers["ID"] or not self.has_raw_hazard(self.pipeline_registers["ID"][0])
 
-        # IF ← دستور جدید فقط اگر IF خالی باشه
-        if len(self.instructions) > 0 and not self.pipeline_registers["IF"]:
-            next_instr = self.instructions.pop(0)
-            self.pipeline_registers["IF"].append(next_instr)
 
-        # ثبت همه مراحل
-        for stage in ["IF", "ID", "EX", "MEM", "WB"]:
-            for instr in self.pipeline_registers[stage]:
-                self.log_pipeline_stage(instr, stage)
+            print("can_fetch_new: ",can_fetch_new)
+            if can_fetch_new:
+                self.pipeline_registers["ID"] = self.pipeline_registers["IF"]
+                self.pipeline_registers["IF"] = []
+            # else:
+                # self.pipeline_registers["IF"] = []
+
+
+            if len(self.instructions) > 0 and can_fetch_new:
+                next_instr = self.instructions.pop(0)
+                self.pipeline_registers["IF"].append(next_instr)
+
+
+            
+                
+
+
+            # لاگ کردن وضعیت هر دستور
+            for stage, instr_list in self.pipeline_registers.items():
+                for instr in instr_list:
+                    self.log_pipeline_stage(instr, stage)
+            print('instructions: ',self.instructions)
+            print(self.pipeline_registers)
+            print('============================================')
+
+
+
 
 
     def is_done(self):
@@ -127,16 +163,20 @@ class Pipeline:
         max_cycle = self.clock
         all_instrs = sorted(self.pipeline_matrix.keys(), key=lambda x: x.id)
 
-        # سطر اول: شماره سیکل‌ها
+        # سطر اول: شماره کلاک‌ها
         header = ["     "]
         for c in range(1, max_cycle + 1):
             header.append(f"C{c:<3}")
         print(" ".join(header))
 
-        # سطرهای دستورها
+        # هر دستور
         for instr in all_instrs:
             row = [f"I{instr.id:<3}|"]
             for c in range(1, max_cycle + 1):
-                stage = self.pipeline_matrix[instr].get(c, "")
-                row.append(f"{stage:<4}")
+                if instr.is_flushed and c in self.pipeline_matrix[instr]:
+                    row.append("--  ")  # نشانه flush
+                else:
+                    stage = self.pipeline_matrix[instr].get(c, "")
+                    row.append(f"{stage:<4}")
             print(" ".join(row))
+

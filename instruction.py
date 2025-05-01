@@ -6,6 +6,7 @@ class Instruction:
         self.rt = rt                  # ورودی دوم
         self.imm = imm                # offset یا مقدار immediate
         self.label = label            # برای jump/branch
+        self.is_flushed = False
 
         self.stage = "IF"             # مرحله فعلی در پایپ‌لاین
         self.cycle_entered = {}       # چرخه ورود به هر مرحله
