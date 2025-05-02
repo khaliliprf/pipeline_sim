@@ -11,6 +11,7 @@ class Pipeline:
     def __init__(self, instructions,enable_forwarding=False):
         
         self.instructions = instructions
+        self.input_instructions_count = len(instructions)
         self.stall_count = 0
         self.enable_forwarding = enable_forwarding
         self.flush_count = 0
@@ -172,7 +173,7 @@ class Pipeline:
         self.print_stats()
         stats = {
             "Total Cycles": self.clock,
-            "Total Instructions": len(self.completed_instructions),
+            "Total Instructions": self.input_instructions_count,
             "Stalls": self.stall_count,
             "Flushes": getattr(self, 'flush_count', 0),
             "Forwards": getattr(self, 'forward_count', 0),
