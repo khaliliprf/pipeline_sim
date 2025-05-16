@@ -13,7 +13,7 @@ def export_simulation_image(pipeline_matrix, stats, enable_forwarding):
         "EX": "#b2df8a",
         "MEM": "#cab2d6",
         "WB": "#fb9a99",
-        "--": "#999999",
+        "Flushed": "#999999",
         None: "#ffffff"
     }
 
@@ -38,7 +38,7 @@ def export_simulation_image(pipeline_matrix, stats, enable_forwarding):
 
     for instr in instructions:
         for cycle, stage in pipeline_matrix[instr].items():
-            df.at[f"I{instr.id}", cycle] = "--" if getattr(instr, "is_flushed", False) else stage
+            df.at[f"I{instr.id}", cycle] = "Flushed" if getattr(instr, "is_flushed", False) else stage
 
     # رسم گرافیکی ترکیبی
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(14, 8), gridspec_kw={"height_ratios": [3, 1]})
