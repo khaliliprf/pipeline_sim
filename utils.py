@@ -90,3 +90,25 @@ def export_simulation_image(pipeline_matrix, stats, enable_forwarding):
         json.dump({"last_simulation_number": simulation_count + 1}, f)
 
     print(f"[✔] Saved pipeline result image to: {filepath}")
+
+def branch_condition_taken(instr):
+    rs_val = instr.rs  # در شبیه‌سازی فرضی مقدار واقعی اینا باید معلوم بشه
+    rt_val = instr.rt
+
+    # فرض ساده: مقدار عددی رجیسترها برابر با اسم رجیستر (مثلاً r2 = 2)
+    try:
+        rs_val = int(rs_val[1:])  # "r2" → 2
+        rt_val = int(rt_val[1:])
+    except:
+        return False
+
+    if instr.instr_type == "BEQ":
+        return rs_val == rt_val
+    elif instr.instr_type == "BNE":
+        return rs_val != rt_val
+    elif instr.instr_type == "BLE":
+        return rs_val <= rt_val
+    elif instr.instr_type == "BGE":
+        return rs_val >= rt_val
+    else:
+        return False

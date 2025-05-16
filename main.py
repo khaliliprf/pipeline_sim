@@ -24,13 +24,6 @@ flush_test_1 = [
 ]
 
 
-structural_test_1 = [
-    Instruction("ADD", rd="R1", rs="R2", rt="R3"),       # I1: EX در C3
-    Instruction("SUB", rd="R4", rs="R1", rt="R5"),       # I2: وابسته ← استال در ID تا EX آزاد شه
-    Instruction("AND", rd="R6", rs="R7", rt="R8"),       # I3: مستقل ← ممکنه هم‌زمان با I2 وارد EX بشه
-]
-
-
 #  no branch - testing stall in no forwarding 
-p = Pipeline(instructions=deepcopy(structural_test_1), enable_forwarding=True)
+p = Pipeline(instructions=deepcopy(flush_test_1), enable_forwarding=True)
 p.run()

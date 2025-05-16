@@ -1,6 +1,6 @@
 # pipeline.py
 
-from utils import export_simulation_image
+from utils import branch_condition_taken, export_simulation_image
 
 class Pipeline:
     def __init__(self, instructions,enable_forwarding=False):
@@ -71,36 +71,30 @@ class Pipeline:
             # # EX ← MEM
             self.pipeline_registers["MEM"] = self.pipeline_registers["EX"]
 
+            # بررسی انشعاب در EX
+            if self.pipeline_registers["EX"]:
+                curr_instr = self.pipeline_registers["EX"][0]
+                if self.is_conditional_branch(curr_instr):
+                    # branch_taken = branch_condition_taken(curr_instr)  # یا هر شرط واقعی‌ای که بخوای
+                    branch_taken = True # یا هر شرط واقعی‌ای که بخوای
+                    if branch_taken:
+                        # Flush مراحل IF و ID
+                        for stage in ["IF", "ID"]:
+                            for flushed_instr in self.pipeline_registers[stage]:
+                                flushed_instr.is_flushed = True
+                                self.flush_count += 1
+                            self.pipeline_registers[stage] = []
+
+                        # توجه: اگر نیاز داری، PC رو هم به مقصد برنچ ببر
+                        # self.set_pc(curr_instr.pc + curr_instr.imm) یا مشابه
+
+
             # بررسی برای EX ← ID
             if self.pipeline_registers["ID"]:
                 curr_instr = self.pipeline_registers["ID"][0]
 
-                # ex_busy = bool(self.pipeline_registers["EX"])
-                # mem_busy = bool(self.pipeline_registers["MEM"])
 
-                # if ex_busy or mem_busy:
-                #     self.structural_stalls += 1
-                #     self.stall_count += 1
-                #     self.log_pipeline_stage(curr_instr, "ID")  # دستور در ID بمونه
-                # بررسی دستور BEQ برای Flush
-                if curr_instr.instr_type == "BEQ":
-                    branch_taken = False  # در اینجا فرض می‌کنیم انشعاب انجام نمی‌شه
-
-                    if not branch_taken:
-                        # دستور BEQ و دستورهای بعدی در IF/ID حذف می‌شن
-                        for stage in ["IF", "ID"]:
-                            for flushed_instr in self.pipeline_registers[stage]:
-                                flushed_instr.is_flushed = True
-                                self.flush_count += 1  # ← شمارش flush
-
-                        self.pipeline_registers["IF"] = []
-                        self.pipeline_registers["ID"] = []
-                        self.pipeline_registers["EX"] = []
-                    else:
-                        self.pipeline_registers["EX"] = self.pipeline_registers["ID"]
-                        self.pipeline_registers["ID"] = []
-
-                elif self.has_raw_hazard(curr_instr):
+                if self.has_raw_hazard(curr_instr):
                     self.pipeline_registers["EX"] = []  # استال
                     self.stall_count += 1
                     self.log_pipeline_stage(curr_instr, "ID")
@@ -175,6 +169,9 @@ class Pipeline:
         }
         export_simulation_image(self.pipeline_matrix, stats, self.enable_forwarding)
 
+    def is_conditional_branch(self,instr):
+        print('in is_conditional_branch',instr)
+        return instr.instr_type in ["BEQ", "BNE", "BLE", "BGE"]
     def print_pipeline_matrix(self):
         print("\nPipeline Matrix:\n")
         max_cycle = self.clock
