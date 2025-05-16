@@ -4,7 +4,6 @@ from utils import export_simulation_image
 
 class Pipeline:
     def __init__(self, instructions,enable_forwarding=False):
-        
         self.instructions = instructions
         self.input_instructions_count = len(instructions)
         self.stall_count = 0
@@ -157,10 +156,13 @@ class Pipeline:
     def total_instruction_count(self):
         return len(self.completed_instructions) + sum(len(lst) for lst in self.pipeline_registers.values()) + len(self.instructions)
     def run(self, max_cycles=100):
-        # print(f"[RUN] Pipeline starting — Forwarding: {self.enable_forwarding}")
         while not self.is_done() and self.clock < max_cycles:
-            # print(f"[TICK {self.clock+1}] Remaining: {len(self.instructions)} | IF: {self.pipeline_registers['IF']} | ID: {self.pipeline_registers['ID']}")
             self.tick()
+
+        # حذف آخرین cycle اگر خالی بوده و چیزی اجرا نشده
+        if all(len(stage) == 0 for stage in self.pipeline_registers.values()):
+            self.clock -= 1
+
         self.print_pipeline_matrix()
         self.print_stats()
         stats = {
@@ -172,6 +174,7 @@ class Pipeline:
             "CPI": self.clock / len(self.completed_instructions) if self.completed_instructions else float("inf")
         }
         export_simulation_image(self.pipeline_matrix, stats, self.enable_forwarding)
+
     def print_pipeline_matrix(self):
         print("\nPipeline Matrix:\n")
         max_cycle = self.clock
