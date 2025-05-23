@@ -157,6 +157,7 @@ class Scoreboard:
   def tick(self):
     # unlock all functional units
     for fu in self.units:
+      print(fu)
       fu.lock = False
 
     # Get the next instruction based on the PC
@@ -186,6 +187,8 @@ class Scoreboard:
 
 if __name__ == '__main__':
   sb = ScoreboardParser.scoreboard_for_asm(ASM_FILE)
+
+  print("sb",sb)
 
   while not sb.done():
     sb.tick()

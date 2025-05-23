@@ -25,5 +25,5 @@ flush_test_1 = [
 
 
 #  no branch - testing stall in no forwarding 
-p = Pipeline(instructions=deepcopy(flush_test_1), enable_forwarding=False)
+p = Pipeline(instructions=deepcopy(benchmark_no_hazard_simple), enable_forwarding=False)
 p.run()
